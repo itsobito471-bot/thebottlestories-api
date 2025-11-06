@@ -19,7 +19,7 @@ const createAdmin = async () => {
   const admin = new AdminUser({
     email: 'admin@example.com',
     full_name: 'Admin User',
-    password_hash: 'mypassword123', // <-- CHANGE THIS!
+    password_hash: 'mypassword123',
   });
 
   try {
