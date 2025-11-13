@@ -5,6 +5,7 @@ require('dotenv').config();
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
+    console.log(email, password,'login attempt');
     const user = await AdminUser.findOne({ email });
     console.log(user);
     if (!user) {
