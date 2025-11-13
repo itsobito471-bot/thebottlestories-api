@@ -1,46 +1,89 @@
-const AdminUser = require('../models/AdminUser');
+// controllers/authController.js
+
+const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
+// @desc    Register a new user
+// @route   POST /api/auth/register
+exports.registerUser = async (req, res) => {
+  const { name, email, password } = req.body;
+
   try {
-    console.log(email, password,'login attempt');
-    const user = await AdminUser.findOne({ email });
-    console.log(user);
-    if (!user) {
-      return res.status(401).json({ msg: 'Invalid credentials' });
+    // 1. Check if user already exists
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ message: 'User already exists' });
     }
 
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ msg: 'Invalid credentials' });
-    }
-
-    const payload = {
-      user: {
-        id: user.id,
-        name: user.full_name,
-      },
-    };
-
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '3h' });
-
-    // --- THIS IS THE CHANGE ---
-    // REMOVE res.cookie(...)
-    // SEND the token in the response
-    res.json({
-      token,
-      user: {
-        _id: user.id,
-        name: user.full_name,
-        email: user.email,
-      }
+    // 2. Create new user instance
+    user = new User({
+      name,
+      email,
+      password,
     });
-    // --------------------------
+
+    // 3. Hash password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+
+    // 4. Save user to database
+    await user.save();
+
+    // 5. Return success (we don't log them in, we make them log in after)
+    res.status(201).json({ message: 'User registered successfully. Please log in.' });
 
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send('Server Error');
+  }
+};
+
+// @desc    Authenticate user & get token (Login)
+// @route   POST /api/auth/login
+exports.loginUser = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // 1. Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // 2. Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // 3. Create JWT Payload
+    const payload = {
+      user: {
+        id: user.id, // This is the user's MongoDB _id
+      },
+    };
+
+    // 4. Sign the token
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      { expiresIn: '5d' }, // Token expires in 5 days
+      (err, token) => {
+        if (err) throw err;
+        // 5. Send token and user info back (except password)
+        res.json({
+          token,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+          },
+        });
+      }
+    );
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
   }
 };

@@ -43,6 +43,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ------------------------
 
 // Define Routes
+app.use('/api/admin-auth', require('./routes/adminAuth'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin')); // This now includes your /upload route
 app.use('/api/products', require('./routes/products'));
