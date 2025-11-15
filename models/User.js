@@ -15,10 +15,9 @@ const UserSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
     minlength: 6,
+    // It is no longer required
   },
-  // You can add more fields here later, like 'role'
-}, { timestamps: true }); // Automatically adds createdAt and updatedAt
+}, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -39,39 +39,37 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-// @desc    Authenticate user & get token (Login)
-// @route   POST /api/auth/login
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // 1. Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // 2. Compare password
+    // --- NEW CHECK ---
+    // Check if user has a password. If not, they signed up with OAuth.
+    if (!user.password) {
+      return res.status(400).json({ 
+        message: 'You registered using a social account. Please sign in with Google or Facebook.' 
+      });
+    }
+    // --- END NEW CHECK ---
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // 3. Create JWT Payload
-    const payload = {
-      user: {
-        id: user.id, // This is the user's MongoDB _id
-      },
-    };
+    const payload = { user: { id: user.id } };
 
-    // 4. Sign the token
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: '5d' }, // Token expires in 5 days
+      { expiresIn: '5d' },
       (err, token) => {
         if (err) throw err;
-        // 5. Send token and user info back (except password)
         res.json({
           token,
           user: {
@@ -87,3 +85,37 @@ exports.loginUser = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
+// --- ADD THIS NEW FUNCTION ---
+// @desc    Handle Google OAuth callback
+// @route   GET /api/auth/google/callback
+exports.googleCallback = (req, res) => {
+  // This function runs after Passport successfully authenticates
+  // The user object is attached to req.user by Passport
+  
+  const payload = {
+    user: {
+      id: req.user.id,
+    },
+  };
+
+  jwt.sign(
+    payload,
+    process.env.JWT_SECRET,
+    { expiresIn: '5d' },
+    (err, token) => {
+      if (err) throw err;
+      
+      // Send token and user data back to the frontend via URL parameters
+      const userParam = encodeURIComponent(JSON.stringify({
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email
+      }));
+      
+      // Redirect to a dedicated callback page on your frontend
+      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${userParam}`);
+    }
+  );
+};
+

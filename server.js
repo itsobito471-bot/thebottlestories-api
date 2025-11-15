@@ -4,6 +4,7 @@ const connectDB = require('./config/db');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const path = require('path'); // <-- 1. ADD THIS LINE
+const passport = require('passport');
 require('dotenv').config();
 
 const app = express();
@@ -28,6 +29,10 @@ const corsOptions = {
 
 // Connect to Database
 connectDB();
+
+// --- 2. Initialize Passport ---
+app.use(passport.initialize());
+require('./config/passport')(passport); // Pass passport to config file
 
 // Init Middleware
 app.use(cors(corsOptions));
