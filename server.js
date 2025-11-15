@@ -3,8 +3,8 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
-const path = require('path'); // <-- 1. ADD THIS LINE
-const passport = require('passport');
+const path = require('path');
+const passport = require('passport'); // <-- 1. FIX: Import the 'passport' library
 require('dotenv').config();
 
 const app = express();
@@ -16,23 +16,21 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Check if the request's origin is in our allowed list
-    // 'origin' will be undefined for server-to-server requests or Postman
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
     } else {
       callback(new Error('This domain is not allowed by CORS'));
     }
   },
-  credentials: true // This is essential for cookies
+  credentials: true
 };
 
 // Connect to Database
 connectDB();
 
-// --- 2. Initialize Passport ---
-app.use(passport.initialize());
-require('./config/passport')(passport); // Pass passport to config file
+// --- Initialize Passport ---
+app.use(passport.initialize()); // <-- 2. This now works
+require('./config/passport')(passport); // <-- 3. This is the connection. It passes the library into your config file.
 
 // Init Middleware
 app.use(cors(corsOptions));
@@ -41,19 +39,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// --- 2. ADD THIS LINE ---
-// This makes the 'uploads' folder public.
-// Any request to /uploads/filename.jpg will serve the file.
+// This makes the 'uploads' folder public
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-// ------------------------
 
 // Define Routes
 app.use('/api/admin-auth', require('./routes/adminAuth'));
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/admin', require('./routes/admin')); // This now includes your /upload route
+app.use('/api/admin', require('./routes/admin'));
 app.use('/api/products', require('./routes/products'));
-
-// ... other routes
 
 // Basic route
 app.get('/', (req, res) => res.send('API Running'));
