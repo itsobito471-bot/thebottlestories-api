@@ -3,6 +3,7 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middleware/auth');
 const uploadMiddleware = require('../middleware/upload');
+// const auth = require('../middleware/auth')
 // All routes in this file are protected by the authMiddleware
 router.use(authMiddleware);
 
@@ -30,7 +31,7 @@ router.post('/upload', uploadMiddleware, adminController.uploadProductImage);
 // @route   POST api/admin/products
 // @desc    Create a new product
 // @access  Private
-router.post('/products', /* auth, */ adminController.createProduct);
+router.post('/products',authMiddleware , adminController.createProduct);
 
 // @route   GET api/admin/products
 // @desc    Get all admin products
@@ -47,5 +48,23 @@ router.put('/products/:id', /* auth, */ adminController.updateProduct);
 // @access  Private
 router.delete('/products/:id', /* auth, */ adminController.deleteProduct);
 // ------------------------------------
+
+
+
+router.get('/tags', adminController.getTags);
+router.get('/fragrances', adminController.getFragrances);
+
+
+// --- Tags ---
+// router.get('/tags', adminController.getTags);
+router.post('/tags', authMiddleware, adminController.createTag); // Protected
+router.delete('/tags/:id', authMiddleware, adminController.deleteTag); // Protected
+
+// --- Fragrances ---
+// router.get('/fragrances', adminController.getFragrances);
+router.post('/fragrances', authMiddleware, adminController.createFragrance); // Protected
+router.put('/fragrances/:id', authMiddleware, adminController.updateFragrance); // Protected
+router.delete('/fragrances/:id', authMiddleware, adminController.deleteFragrance); // Protected
+
 
 module.exports = router;

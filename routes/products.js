@@ -9,7 +9,7 @@ const {
   getAllProductIds
 } = require('../controllers/productController');
 
-// @route   GET /api/products/filter
+// @route   GET /api/productsfilter
 // @desc    Get products with advanced filtering, sorting, and pagination
 // @access  Public
 router.get('/filter', filterProducts);
