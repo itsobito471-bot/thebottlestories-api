@@ -1,30 +1,22 @@
+// models/User.js
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    match: [/.+\@.+\..+/, 'Please fill a valid email address'],
-  },
-  password: {
-    type: String,
-    minlength: 6,
-    // Not required: true, because users logging in via Google/Facebook won't have a password
-  },
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String },
+  role: { type: String, enum: ['admin', 'worker', 'customer'], default: 'customer' },
   
-  // --- NEW: Role Management ---
-  // This allows you to set permissions and track who did what.
-  role: {
-    type: String,
-    enum: ['admin', 'worker', 'customer'], // Only these values are allowed
-    default: 'customer' // Default role for people signing up on the website
-  }
-  
+  // --- NEW: Store multiple addresses ---
+  addresses: [{
+    firstName: String,
+    lastName: String,
+    address: String,
+    city: String,
+    state: String,
+    zip: String,
+    phone: String
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);
