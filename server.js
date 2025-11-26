@@ -47,6 +47,7 @@ app.use('/api/admin-auth', require('./routes/adminAuth'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/products', require('./routes/products'));
+app.use('/api/orders', require('./routes/orders'));
 
 // Basic route
 app.get('/', (req, res) => res.send('API Running'));
