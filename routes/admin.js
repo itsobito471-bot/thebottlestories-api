@@ -17,10 +17,11 @@ router.get('/stats', adminController.getStats);
 // @access  Private
 router.get('/orders', adminController.getOrders);
 
-// @route   PATCH api/admin/orders/:orderId
+// @route   PATCH api/admin/orders/:orderId/status
 // @desc    Update an order's status
 // @access  Private
-router.patch('/orders/:orderId', adminController.updateOrderStatus);
+// In routes/admin.js
+router.put('/orders/:id/status', authMiddleware, adminController.updateOrderStatus);
 
 // @route   POST api/admin/upload
 // @desc    Upload a product image

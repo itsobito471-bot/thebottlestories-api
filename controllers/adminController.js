@@ -2,6 +2,7 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const Tag = require('../models/Tag');
 const Fragrance = require('../models/Fragrance');
+const orderItem = require('../models/OrderItem');
 
 // Get Dashboard Stats
 exports.getStats = async (req, res) => {
@@ -34,45 +35,163 @@ exports.getStats = async (req, res) => {
 };
 
 // Get All Orders
+/**
+ * @route   GET api/admin/orders
+ * @desc    Get all orders with full details (Populated)
+ * @access  Private
+ */
 exports.getOrders = async (req, res) => {
   try {
-    // We'll skip joining items for now to keep it simple
-    const orders = await Order.find().sort({ created_at: -1 });
-    res.json(orders);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const { search, status } = req.query;
+    const skip = (page - 1) * limit;
+
+    // 1. Build Filter Query
+    const query = {};
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      // Check if search looks like a valid ObjectId to prevent casting errors
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(search);
+
+      if (isObjectId) {
+        // If it looks like an ID, search by ID OR fields
+        query.$or = [
+          { _id: search },
+          { customer_name: searchRegex },
+          { customer_email: searchRegex }
+        ];
+      } else {
+        // Otherwise search just text fields
+        query.$or = [
+          { customer_name: searchRegex },
+          { customer_email: searchRegex }
+        ];
+      }
+    }
+
+    // 2. Fetch Paginated Data
+    const orders = await Order.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: 'items',
+        populate: [
+          { path: 'product', select: 'name images price' },
+          { path: 'selected_fragrances', select: 'name' }
+        ]
+      })
+      .populate('user', 'name email');
+
+    // 3. Pagination Metadata
+    const totalFiltered = await Order.countDocuments(query);
+    const hasMore = skip + orders.length < totalFiltered;
+
+    // 4. Calculate Global Stats (Independent of pagination)
+    // Revenue: Exclude 'pending', 'rejected', 'cancelled'
+    const revenueStats = await Order.aggregate([
+      { 
+        $match: { 
+          status: { $nin: ['pending', 'rejected', 'cancelled'] } 
+        } 
+      },
+      { 
+        $group: { 
+          _id: null, 
+          totalRevenue: { $sum: "$total_amount" } 
+        } 
+      }
+    ]);
+
+    const totalRevenue = revenueStats.length > 0 ? revenueStats[0].totalRevenue : 0;
+    const pendingCount = await Order.countDocuments({ status: 'pending' });
+    const totalOrdersCount = await Order.countDocuments();
+
+    res.json({
+      orders,
+      pagination: {
+        page,
+        hasMore,
+        totalFiltered
+      },
+      stats: {
+        revenue: totalRevenue,
+        total: totalOrdersCount,
+        pending: pendingCount
+      }
+    });
+
   } catch (err) {
-    console.error(err.message);
+    console.error("Get Orders Error:", err.message);
     res.status(500).send('Server error');
   }
 };
 
+
 // Update Order Status
 exports.updateOrderStatus = async (req, res) => {
   const { status } = req.body;
-  const { orderId } = req.params;
+  const { id } = req.params; // Matches route '/:id/status'
 
-  // Simple validation
-  if (!['pending', 'approved', 'rejected', 'completed'].includes(status)) {
-    return res.status(400).json({ msg: 'Invalid status' });
+  console.log(`Updating Order ${id} to status: ${status}`);
+
+  // 1. Expanded Validation List
+  // These statuses map to your frontend "Perfume Journey"
+  const validStatuses = [
+    'pending',      // Order placed
+    'approved',     // Payment confirmed
+    'crafting',     // "Blending your scents..."
+    'packaging',    // "Adding final touches..."
+    'shipped',      // "Out for delivery"
+    'delivered',    // Arrived at destination
+    'completed',    // Transaction closed
+    'cancelled',    // Order cancelled
+    'rejected'      // Order rejected by admin
+  ];
+
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ 
+      msg: `Invalid status. Allowed: ${validStatuses.join(', ')}` 
+    });
   }
 
   try {
+    // 2. Find and Update
     const order = await Order.findByIdAndUpdate(
-      orderId,
-      { $set: { status: status, updated_at: new Date() } },
-      { new: true } // Return the updated document
+      id,
+      { 
+        $set: { 
+          status: status, 
+          updated_at: new Date() // Update timestamp
+        } 
+      },
+      { new: true } // Return the updated document so UI updates immediately
     );
 
     if (!order) {
       return res.status(404).json({ msg: 'Order not found' });
     }
 
+    // 3. Return updated order
     res.json(order);
+
   } catch (err) {
-    console.error(err.message);
+    console.error('Update Status Error:', err.message);
+    
+    // Handle Invalid ID format explicitly
+    if (err.kind === 'ObjectId') {
+        return res.status(404).json({ msg: 'Order not found (Invalid ID format)' });
+    }
+    
     res.status(500).send('Server error');
   }
 };
-
 
 
 exports.uploadProductImage = (req, res) => {
