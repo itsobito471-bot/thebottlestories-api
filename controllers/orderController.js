@@ -110,3 +110,53 @@ exports.updateOrderStatus = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
+
+
+// @route   GET /api/orders/myorders
+// @desc    Get logged in user's orders (Paginated & Filtered)
+// @access  Private
+exports.getMyOrders = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const status = req.query.status; // Optional status filter
+    const skip = (page - 1) * limit;
+
+    // 1. Build Query
+    const query = { user: req.user.id }; // Always filter by logged-in user
+    
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    // 2. Fetch Orders
+    const orders = await Order.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: 'items',
+        populate: { 
+          path: 'product',
+          select: 'name images price'
+        }
+      });
+
+    // 3. Get Total Count for Pagination
+    const total = await Order.countDocuments(query);
+    const hasMore = skip + orders.length < total;
+
+    res.json({
+      data: orders,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore
+      }
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};

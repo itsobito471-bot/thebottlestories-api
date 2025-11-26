@@ -6,6 +6,8 @@ const auth = require('../middleware/auth');
 // POST /api/orders
 router.post('/', auth, orderController.createOrder);
 
+router.get('/myorders',auth, orderController.getMyOrders);
+
 
 
 module.exports = router;
