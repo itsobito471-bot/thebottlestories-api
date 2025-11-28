@@ -17,17 +17,17 @@ exports.filterProducts = async (req, res) => {
       maxPrice, 
       minRating,
       sort,
-      page = 1,
+      page = 1, 
       limit = 10 
     } = req.query;
 
     const query = {
-      is_active: true, // Only show active products
+      is_active: true, 
     };
 
-    // Text search (name & description)
+    // Text search
     if (search) {
-      const searchRegex = new RegExp(search, 'i'); // 'i' for case-insensitive
+      const searchRegex = new RegExp(search, 'i');
       query.$or = [
         { name: searchRegex },
         { description: searchRegex }
@@ -36,17 +36,19 @@ exports.filterProducts = async (req, res) => {
 
     // Tag filter
     if (tag) {
-      query.tag = tag;
+      // NOTE: If 'tag' comes in as an ID, this works. 
+      // If 'tag' comes in as a name (e.g., "Best Seller"), you might need to adjust this logic.
+      query.tags = tag; 
     }
 
-    // Price range filter
+    // Price range
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = Number(minPrice);
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
 
-    // Minimum rating filter
+    // Rating
     if (minRating) {
       query.rating = { $gte: Number(minRating) };
     }
@@ -54,29 +56,26 @@ exports.filterProducts = async (req, res) => {
     // --- 2. Build Sort Options ---
     const sortOptions = {};
     switch (sort) {
-      case 'price-asc':
-        sortOptions.price = 1; // 1 for ascending
-        break;
-      case 'price-desc':
-        sortOptions.price = -1; // -1 for descending
-        break;
-      case 'rating':
-        sortOptions.rating = -1;
-        break;
+      case 'price-asc': sortOptions.price = 1; break;
+      case 'price-desc': sortOptions.price = -1; break;
+      case 'rating': sortOptions.rating = -1; break;
       case 'newest':
-      default:
-        sortOptions.createdAt = -1; // Default sort
+      default: sortOptions.createdAt = -1;
     }
 
     // --- 3. Execute Query with Pagination ---
     const skip = (Number(page) - 1) * Number(limit);
 
     const products = await Product.find(query)
+      // 👇 THIS IS THE FIX 👇
+      .populate('available_fragrances', 'name',) // Replaces IDs with Fragrance Objects (only name and _id)
+      .populate('tags', 'name color')           // Recommended: Populate tags too so you get tag names, not just IDs
+      // 👆 ------------------ 👆
       .sort(sortOptions)
       .skip(skip)
       .limit(Number(limit));
 
-    // --- 4. Get Total Count for Pagination ---
+    // --- 4. Get Total Count ---
     const totalProducts = await Product.countDocuments(query);
     const totalPages = Math.ceil(totalProducts / Number(limit));
 
@@ -121,7 +120,11 @@ exports.getMostPreferredProducts = async (req, res) => {
  */
 exports.getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id)
+      // --- FIX IS HERE ---
+      // Combine fields into one string: 'name in_stock'
+      .populate('available_fragrances', 'name in_stock') 
+      .populate('tags', 'name'); // Removed 'color' unless you added it to the Tag schema
 
     // Check if product exists and is active
     if (!product || !product.is_active) {
@@ -139,7 +142,6 @@ exports.getProductById = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
-
 /**
  * @route   GET /api/products/all/ids
  * @desc    Get all active product IDs
