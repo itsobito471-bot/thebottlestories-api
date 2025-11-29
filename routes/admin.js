@@ -52,7 +52,7 @@ router.delete('/products/:id', /* auth, */ adminController.deleteProduct);
 
 
 
-router.get('/tags', adminController.getTags);
+router.get('/tags',authMiddleware, adminController.getTags);
 router.get('/fragrances', adminController.getFragrances);
 
 

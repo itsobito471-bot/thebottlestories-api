@@ -4,11 +4,22 @@ const Cart = require('../models/Cart');
 // @desc    Get user's cart
 exports.getCart = async (req, res) => {
   try {
-    let cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
+    let cart = await Cart.findOne({ user: req.user.id })
+      .populate({
+        path: 'items.product',
+        // We use nested populate here to go inside the product
+        // and fetch the actual Fragrance documents
+        populate: {
+          path: 'available_fragrances',
+          model: 'Fragrance' // Ensure this matches your Fragrance model name
+        }
+      });
+
     if (!cart) {
       // Create empty cart if none exists
       cart = await Cart.create({ user: req.user.id, items: [] });
     }
+    
     res.json(cart.items);
   } catch (err) {
     console.error(err);
