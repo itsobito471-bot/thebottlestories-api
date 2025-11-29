@@ -4,6 +4,19 @@ const Tag = require('../models/Tag');
 const Fragrance = require('../models/Fragrance');
 const orderItem = require('../models/OrderItem');
 
+const nodemailer = require('nodemailer'); // <--- IMPORT 1
+
+// <--- TRANSPORTER MUST BE HERE (Outside the function) ---
+const transporter = nodemailer.createTransport({
+  host: process.env.MAIL_SERVER,
+  port: Number(process.env.MAIL_PORT),
+  secure: false,
+  auth: {
+    user: process.env.MAIL_USERNAME,
+    pass: process.env.MAIL_PASSWORD
+  }
+});
+
 // Get Dashboard Stats
 exports.getStats = async (req, res) => {
   try {
@@ -137,22 +150,21 @@ exports.getOrders = async (req, res) => {
 // Update Order Status
 exports.updateOrderStatus = async (req, res) => {
   const { status } = req.body;
-  const { id } = req.params; // Matches route '/:id/status'
+  const { id } = req.params; 
 
   console.log(`Updating Order ${id} to status: ${status}`);
 
-  // 1. Expanded Validation List
-  // These statuses map to your frontend "Perfume Journey"
+  // 1. Validation: "Perfume Journey" Statuses
   const validStatuses = [
-    'pending',      // Order placed
-    'approved',     // Payment confirmed
-    'crafting',     // "Blending your scents..."
-    'packaging',    // "Adding final touches..."
-    'shipped',      // "Out for delivery"
-    'delivered',    // Arrived at destination
-    'completed',    // Transaction closed
-    'cancelled',    // Order cancelled
-    'rejected'      // Order rejected by admin
+    'pending',      
+    'approved',     
+    'crafting',     
+    'packaging',    
+    'shipped',      
+    'delivered',    
+    'completed',    
+    'cancelled',    
+    'rejected'      
   ];
 
   if (!validStatuses.includes(status)) {
@@ -162,23 +174,125 @@ exports.updateOrderStatus = async (req, res) => {
   }
 
   try {
-    // 2. Find and Update
+    // 2. Find and Update in Database
     const order = await Order.findByIdAndUpdate(
       id,
       { 
         $set: { 
           status: status, 
-          updated_at: new Date() // Update timestamp
+          updated_at: new Date() 
         } 
       },
-      { new: true } // Return the updated document so UI updates immediately
+      { new: true } // Return updated doc
     );
 
     if (!order) {
       return res.status(404).json({ msg: 'Order not found' });
     }
 
-    // 3. Return updated order
+    // ---------------------------------------------------------
+    // 3. SEND EMAIL NOTIFICATION (The New Part)
+    // ---------------------------------------------------------
+    
+    // A. Define Content based on Status
+    let emailSubject = `Update on Order #${order._id.toString().slice(-6)}`;
+    let emailHeading = "Order Status Updated";
+    let emailMessage = `Your order status has been updated to <strong>${status}</strong>.`;
+    let color = "#1C1C1C"; // Default Black
+
+    switch(status.toLowerCase()) {
+        case 'approved':
+            emailHeading = "Order Approved";
+            emailMessage = "Your payment has been confirmed! We are now getting everything ready for you.";
+            color = "#1C1C1C";
+            break;
+        case 'crafting':
+            emailHeading = "We are blending your scents...";
+            emailMessage = "Our artisans are currently crafting your selection. Each bottle is being prepared with care.";
+            color = "#9333EA"; // Purple for luxury/crafting
+            break;
+        case 'packaging':
+            emailHeading = "Almost ready!";
+            emailMessage = "We are adding the final touches and packaging your gift hamper to ensure it arrives safely and beautifully.";
+            color = "#D97706"; // Amber/Gold
+            break;
+        case 'shipped':
+            emailSubject = `Your Order #${order._id.toString().slice(-6)} has Shipped! 🚚`;
+            emailHeading = "It's on the way!";
+            emailMessage = "Great news! Your package has left our facility and is making its way to you.";
+            color = "#2563EB"; // Blue
+            break;
+        case 'delivered':
+        case 'completed':
+            emailSubject = `Delivered! Enjoy your Perfumes ✨`;
+            emailHeading = "Package Delivered";
+            emailMessage = "Your order has been marked as delivered. We hope these scents create lasting memories for you!";
+            color = "#16A34A"; // Green
+            break;
+        case 'cancelled':
+        case 'rejected':
+            emailSubject = `Order #${order._id.toString().slice(-6)} Cancelled`;
+            emailHeading = "Order Cancelled";
+            emailMessage = "This order has been cancelled. If you believe this is a mistake, please reply to this email.";
+            color = "#DC2626"; // Red
+            break;
+        default:
+            // Keep default generic message for 'pending' or unknown
+            break;
+    }
+
+    // B. Create the HTML Template
+    const htmlTemplate = `
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f5; padding: 40px 0;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            
+            <div style="background-color: #1C1C1C; padding: 30px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-family: serif; letter-spacing: 1px;">The Bottle Stories</h1>
+            </div>
+
+            <div style="padding: 40px 30px; text-align: center;">
+                <h2 style="color: ${color}; margin-top: 0;">${emailHeading}</h2>
+                <p style="color: #555555; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                    ${emailMessage}
+                </p>
+
+                <div style="background-color: #fafafa; border: 1px solid #eeeeee; padding: 20px; border-radius: 8px; text-align: left; margin-bottom: 30px;">
+                    <p style="margin: 5px 0; color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Order Details</p>
+                    <p style="margin: 5px 0 0 0; font-weight: bold; color: #333;">Order ID: #${order._id}</p>
+                    <p style="margin: 5px 0 0 0; font-weight: bold; color: #333;">New Status: <span style="color: ${color}; text-transform: capitalize;">${status}</span></p>
+                </div>
+
+                <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/my-orders" style="display: inline-block; background-color: #1C1C1C; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Your Order</a>
+            </div>
+
+            <div style="background-color: #f9f9f9; padding: 20px; text-align: center; border-top: 1px solid #eeeeee;">
+                <p style="color: #999999; font-size: 12px; margin: 0;">
+                    Need help? Reply to this email.<br/>
+                    &copy; ${new Date().getFullYear()} The Bottle Stories.
+                </p>
+            </div>
+        </div>
+      </div>
+    `;
+
+    // C. Send the Email (Fire and Forget)
+    if (order.customer_email) {
+        const mailOptions = {
+            from: `"The Bottle Stories" <${process.env.MAIL_USERNAME}>`,
+            to: order.customer_email,
+            subject: emailSubject,
+            html: htmlTemplate
+        };
+
+        transporter.sendMail(mailOptions, (err, info) => {
+            if (err) console.error("❌ Status Update Email Failed:", err);
+            else console.log(`✅ Email sent to ${order.customer_email}: ${info.response}`);
+        });
+    } else {
+        console.log("⚠️ No customer email found, skipping notification.");
+    }
+
+    // 4. Return the response to Admin
     res.json(order);
 
   } catch (err) {
@@ -192,7 +306,6 @@ exports.updateOrderStatus = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
-
 
 exports.uploadProductImage = (req, res) => {
   try {
