@@ -150,21 +150,14 @@ exports.getOrders = async (req, res) => {
 // Update Order Status
 exports.updateOrderStatus = async (req, res) => {
   const { status } = req.body;
-  const { id } = req.params; 
+  const { id } = req.params;
 
   console.log(`Updating Order ${id} to status: ${status}`);
 
-  // 1. Validation: "Perfume Journey" Statuses
+  // 1. Validation
   const validStatuses = [
-    'pending',      
-    'approved',     
-    'crafting',     
-    'packaging',    
-    'shipped',      
-    'delivered',    
-    'completed',    
-    'cancelled',    
-    'rejected'      
+    'pending', 'approved', 'crafting', 'packaging', 
+    'shipped', 'delivered', 'completed', 'cancelled', 'rejected'
   ];
 
   if (!validStatuses.includes(status)) {
@@ -174,16 +167,11 @@ exports.updateOrderStatus = async (req, res) => {
   }
 
   try {
-    // 2. Find and Update in Database
+    // 2. Find and Update
     const order = await Order.findByIdAndUpdate(
       id,
-      { 
-        $set: { 
-          status: status, 
-          updated_at: new Date() 
-        } 
-      },
-      { new: true } // Return updated doc
+      { $set: { status: status, updated_at: new Date() } },
+      { new: true }
     );
 
     if (!order) {
@@ -191,91 +179,134 @@ exports.updateOrderStatus = async (req, res) => {
     }
 
     // ---------------------------------------------------------
-    // 3. SEND EMAIL NOTIFICATION (The New Part)
+    // 3. SEND EMAIL NOTIFICATION (Visual Upgrade)
     // ---------------------------------------------------------
     
-    // A. Define Content based on Status
+    // A. Define Colors & Messages
     let emailSubject = `Update on Order #${order._id.toString().slice(-6)}`;
-    let emailHeading = "Order Status Updated";
-    let emailMessage = `Your order status has been updated to <strong>${status}</strong>.`;
-    let color = "#1C1C1C"; // Default Black
+    let emailHeading = "Status Update";
+    let emailMessage = `The status of your order has changed.`;
+    
+    // We use two colors: a soft background (badgeBg) and a strong text color (badgeText)
+    let badgeBg = "#f3f4f6"; 
+    let badgeText = "#1f2937";
 
     switch(status.toLowerCase()) {
         case 'approved':
-            emailHeading = "Order Approved";
-            emailMessage = "Your payment has been confirmed! We are now getting everything ready for you.";
-            color = "#1C1C1C";
+            emailHeading = "Order Confirmed";
+            emailMessage = "Your payment was successful. We are now reviewing your order.";
+            badgeBg = "#ecfdf5"; badgeText = "#047857"; // Emerald Green
             break;
         case 'crafting':
-            emailHeading = "We are blending your scents...";
-            emailMessage = "Our artisans are currently crafting your selection. Each bottle is being prepared with care.";
-            color = "#9333EA"; // Purple for luxury/crafting
+            emailHeading = "Blending in Progress";
+            emailMessage = "Our artisans are currently crafting your scents. Your bottle story is being written.";
+            badgeBg = "#f3e8ff"; badgeText = "#7e22ce"; // Purple
             break;
         case 'packaging':
-            emailHeading = "Almost ready!";
-            emailMessage = "We are adding the final touches and packaging your gift hamper to ensure it arrives safely and beautifully.";
-            color = "#D97706"; // Amber/Gold
+            emailHeading = "Final Touches";
+            emailMessage = "We are carefully packaging your gift hamper to ensure it arrives beautifully.";
+            badgeBg = "#fffbeb"; badgeText = "#b45309"; // Amber/Gold
             break;
         case 'shipped':
-            emailSubject = `Your Order #${order._id.toString().slice(-6)} has Shipped! 🚚`;
-            emailHeading = "It's on the way!";
-            emailMessage = "Great news! Your package has left our facility and is making its way to you.";
-            color = "#2563EB"; // Blue
+            emailSubject = `Your Order is on the way! 🚚`;
+            emailHeading = "Shipped";
+            emailMessage = "Your package has left our facility! It is making its way to you.";
+            badgeBg = "#eff6ff"; badgeText = "#1d4ed8"; // Blue
             break;
         case 'delivered':
         case 'completed':
-            emailSubject = `Delivered! Enjoy your Perfumes ✨`;
-            emailHeading = "Package Delivered";
-            emailMessage = "Your order has been marked as delivered. We hope these scents create lasting memories for you!";
-            color = "#16A34A"; // Green
+            emailSubject = `Delivered! ✨`;
+            emailHeading = "Arrived";
+            emailMessage = "Your order has been marked as delivered. We hope you enjoy your new scents.";
+            badgeBg = "#f0fdf4"; badgeText = "#15803d"; // Green
             break;
         case 'cancelled':
         case 'rejected':
-            emailSubject = `Order #${order._id.toString().slice(-6)} Cancelled`;
-            emailHeading = "Order Cancelled";
-            emailMessage = "This order has been cancelled. If you believe this is a mistake, please reply to this email.";
-            color = "#DC2626"; // Red
+            emailSubject = `Order Cancelled`;
+            emailHeading = "Cancelled";
+            emailMessage = "This order has been cancelled. If you have questions, please contact support.";
+            badgeBg = "#fef2f2"; badgeText = "#b91c1c"; // Red
             break;
         default:
-            // Keep default generic message for 'pending' or unknown
             break;
     }
 
-    // B. Create the HTML Template
+    // B. The "Nice Looking" HTML Template
     const htmlTemplate = `
-      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f5; padding: 40px 0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            
-            <div style="background-color: #1C1C1C; padding: 30px; text-align: center;">
-                <h1 style="color: #ffffff; margin: 0; font-family: serif; letter-spacing: 1px;">The Bottle Stories</h1>
-            </div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #FDFBF7; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+        
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #FDFBF7; padding: 40px 0;">
+          <tr>
+            <td align="center">
+              
+              <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); overflow: hidden; max-width: 600px; width: 100%;">
+                
+                <tr>
+                  <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+                    <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 28px; color: #1C1C1C; letter-spacing: -0.5px;">The Bottle Stories</h1>
+                  </td>
+                </tr>
 
-            <div style="padding: 40px 30px; text-align: center;">
-                <h2 style="color: ${color}; margin-top: 0;">${emailHeading}</h2>
-                <p style="color: #555555; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
-                    ${emailMessage}
-                </p>
+                <tr>
+                  <td style="padding: 40px 40px;">
+                    <div style="text-align: center;">
+                      
+                      <div style="display: inline-block; background-color: ${badgeBg}; color: ${badgeText}; padding: 8px 20px; border-radius: 50px; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px;">
+                        ${status}
+                      </div>
 
-                <div style="background-color: #fafafa; border: 1px solid #eeeeee; padding: 20px; border-radius: 8px; text-align: left; margin-bottom: 30px;">
-                    <p style="margin: 5px 0; color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Order Details</p>
-                    <p style="margin: 5px 0 0 0; font-weight: bold; color: #333;">Order ID: #${order._id}</p>
-                    <p style="margin: 5px 0 0 0; font-weight: bold; color: #333;">New Status: <span style="color: ${color}; text-transform: capitalize;">${status}</span></p>
-                </div>
+                      <h2 style="margin: 0 0 15px 0; color: #1C1C1C; font-size: 24px;">${emailHeading}</h2>
+                      <p style="margin: 0 0 30px 0; color: #666666; font-size: 16px; line-height: 1.6;">
+                        ${emailMessage}
+                      </p>
 
-                <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/my-orders" style="display: inline-block; background-color: #1C1C1C; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Your Order</a>
-            </div>
+                      <div style="height: 1px; background-color: #f0f0f0; margin: 30px 0;"></div>
 
-            <div style="background-color: #f9f9f9; padding: 20px; text-align: center; border-top: 1px solid #eeeeee;">
-                <p style="color: #999999; font-size: 12px; margin: 0;">
-                    Need help? Reply to this email.<br/>
-                    &copy; ${new Date().getFullYear()} The Bottle Stories.
-                </p>
-            </div>
-        </div>
-      </div>
+                      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                        <tr>
+                          <td style="padding-bottom: 10px; color: #999999; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Order Number</td>
+                          <td style="padding-bottom: 10px; text-align: right; color: #1C1C1C; font-weight: bold;">#${order._id.toString().toUpperCase()}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding-bottom: 10px; color: #999999; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Date Updated</td>
+                          <td style="padding-bottom: 10px; text-align: right; color: #1C1C1C; font-weight: bold;">${new Date().toLocaleDateString()}</td>
+                        </tr>
+                      </table>
+
+                      <div style="margin-top: 35px;">
+                        <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/my-orders" style="background-color: #1C1C1C; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block; transition: background-color 0.3s;">
+                          Track Your Order
+                        </a>
+                      </div>
+
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="background-color: #fafafa; padding: 30px; text-align: center;">
+                    <p style="margin: 0; color: #999999; font-size: 13px; line-height: 1.5;">
+                      Questions? Just reply to this email.<br>
+                      &copy; ${new Date().getFullYear()} The Bottle Stories. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
     `;
 
-    // C. Send the Email (Fire and Forget)
+    // C. Send Email
     if (order.customer_email) {
         const mailOptions = {
             from: `"The Bottle Stories" <${process.env.MAIL_USERNAME}>`,
@@ -285,24 +316,17 @@ exports.updateOrderStatus = async (req, res) => {
         };
 
         transporter.sendMail(mailOptions, (err, info) => {
-            if (err) console.error("❌ Status Update Email Failed:", err);
-            else console.log(`✅ Email sent to ${order.customer_email}: ${info.response}`);
+            if (err) console.error("❌ Status Email Failed:", err);
+            else console.log(`✅ Status Email Sent: ${info.response}`);
         });
-    } else {
-        console.log("⚠️ No customer email found, skipping notification.");
     }
 
-    // 4. Return the response to Admin
+    // 4. Return Updated Order
     res.json(order);
 
   } catch (err) {
     console.error('Update Status Error:', err.message);
-    
-    // Handle Invalid ID format explicitly
-    if (err.kind === 'ObjectId') {
-        return res.status(404).json({ msg: 'Order not found (Invalid ID format)' });
-    }
-    
+    if (err.kind === 'ObjectId') return res.status(404).json({ msg: 'Order not found' });
     res.status(500).send('Server error');
   }
 };
