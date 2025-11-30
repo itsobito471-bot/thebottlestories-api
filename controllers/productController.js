@@ -102,6 +102,7 @@ exports.getMostPreferredProducts = async (req, res) => {
   try {
     // Find active products, sort by rating (highest first), and take the top 10
     const products = await Product.find({ is_active: true })
+      .populate('tags') // Populates the 'tags' field with the referenced Tag documents
       .sort({ rating: -1 }) // -1 for descending
       .limit(10); 
 

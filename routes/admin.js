@@ -3,6 +3,9 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middleware/auth');
 const uploadMiddleware = require('../middleware/upload');
+const settings = require('../controllers/SettingsController');
+
+const { getEnquiries, markEnquiryRead } = require('../controllers/enquiryController');
 // const auth = require('../middleware/auth')
 // All routes in this file are protected by the authMiddleware
 router.use(authMiddleware);
@@ -66,6 +69,19 @@ router.delete('/tags/:id', authMiddleware, adminController.deleteTag); // Protec
 router.post('/fragrances', authMiddleware, adminController.createFragrance); // Protected
 router.put('/fragrances/:id', authMiddleware, adminController.updateFragrance); // Protected
 router.delete('/fragrances/:id', authMiddleware, adminController.deleteFragrance); // Protected
+
+
+router.get('/settings',authMiddleware, settings.getSettings); // Add middleware here if needed: protect, admin, getSettings
+router.post('/settings',authMiddleware, settings.updateSettings);
+
+
+
+// Matches /admin/enquiries
+router.get('/enquiries',authMiddleware, getEnquiries);
+// Matches /admin/enquiries/:id/read
+router.patch('/enquiries/:id/read',authMiddleware, markEnquiryRead);
+
+
 
 
 module.exports = router;
