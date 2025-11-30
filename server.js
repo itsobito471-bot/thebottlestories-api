@@ -50,6 +50,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/cart', require('./routes/cart')); // <-- ADD THIS
 app.use('/api/enquiries', require('./routes/enquiry')); // <-- ADD THIS
+app.use('/api/tags', require('./routes/tags')); // <-- ADD THIS
 
 // Basic route
 app.get('/', (req, res) => res.send('API Running'));
