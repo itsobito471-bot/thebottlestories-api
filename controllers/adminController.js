@@ -577,13 +577,29 @@ exports.updateProduct = async (req, res) => {
  */
 exports.deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const productId = req.params.id;
+
+    // 1. Check if product exists
+    const product = await Product.findById(productId);
 
     if (!product) {
-      return res.status(44).json({ message: 'Product not found' });
+      // Note: Standard HTTP code for Not Found is 404, corrected from 44
+      return res.status(404).json({ message: 'Product not found' });
     }
 
-    await Product.findByIdAndDelete(req.params.id);
+    // 2. CHECK FOR DEPENDENCIES (The Fix)
+    // We check if this product ID exists in the OrderItem collection
+    const isOrdered = await orderItem.findOne({ product: productId });
+
+    if (isOrdered) {
+      // If found, return a 400 Bad Request error
+      return res.status(400).json({ 
+        message: 'Cannot delete product. It has been purchased in previous orders. Consider archiving/deactivating it instead.' 
+      });
+    }
+
+    // 3. Delete if no dependencies found
+    await Product.findByIdAndDelete(productId);
 
     res.json({ message: 'Product removed' });
   } catch (err) {
