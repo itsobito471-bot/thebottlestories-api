@@ -13,7 +13,8 @@ const getSettings = async (req, res) => {
       return res.status(200).json({
         contact_email: '',
         contact_phone: '',
-        address: { street: '', city: '', state: '', zip: '', country: '' }
+        address: { street: '', city: '', state: '', zip: '', country: '' },
+        socialLinks: { facebook: '', instagram: '', twitter: '' , linkedin: '' }
       });
     }
 
@@ -29,7 +30,7 @@ const getSettings = async (req, res) => {
 // @access  Private/Admin
 const updateSettings = async (req, res) => {
   try {
-    const { contact_email, contact_phone, address } = req.body;
+    const { contact_email, contact_phone, address ,socialLinks} = req.body;
 
     // 1. Singleton Update
     // We pass an empty filter {} because we don't care about the ID.
@@ -42,7 +43,8 @@ const updateSettings = async (req, res) => {
           contact_phone,
           address,
           // Assuming you have middleware that adds user to req (e.g., passport/jwt)
-          updatedBy: req.user ? req.user._id : null 
+          updatedBy: req.user ? req.user._id : null ,
+          socialLinks
         } 
       },
       { 

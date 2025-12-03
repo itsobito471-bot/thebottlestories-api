@@ -254,7 +254,7 @@ exports.updateOrderStatus = async (req, res) => {
                   <td>
                     <div style="border: 1px solid ${gold}; padding: 40px; text-align: center;">
                       
-                      <p style="text-transform: uppercase; letter-spacing: 2px; font-size: 10px; color: #999; margin-bottom: 10px;">Est. 2024</p>
+                      <p style="text-transform: uppercase; letter-spacing: 2px; font-size: 10px; color: #999; margin-bottom: 10px;">Est. 2025</p>
                       <h1 style="margin: 0 0 30px 0; font-family: 'Playfair Display', Georgia, serif; font-size: 32px; color: ${dark}; font-weight: 400; letter-spacing: 1px;">
                         The Bottle Stories
                       </h1>

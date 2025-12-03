@@ -24,6 +24,13 @@ const SettingsSchema = new mongoose.Schema({
     country: { type: String, default: 'India' }
   },
 
+  socialLinks: {
+    facebook: { type: String, default: '' },
+    instagram: { type: String, default: '' },
+    twitter: { type: String, default: '' },
+    linkedin: { type: String, default: '' }
+  },
+
   // --- Store Configuration (Optional future proofing) ---
   currency: { type: String, default: 'INR' },
   tax_rate: { type: Number, default: 0 },
