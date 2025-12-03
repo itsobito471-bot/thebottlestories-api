@@ -19,6 +19,9 @@ const UserSchema = new mongoose.Schema({
   }],
 
   profilePicture: { type: String, default: '' },
+
+  phone: { type: String, default: '' },
+  dob: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);
