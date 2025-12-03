@@ -47,6 +47,7 @@ app.use('/api/admin-auth', require('./routes/adminAuth'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/products', require('./routes/products'));
+app.use('/api/user', require('./routes/user'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/cart', require('./routes/cart')); // <-- ADD THIS
 app.use('/api/enquiries', require('./routes/enquiry')); // <-- ADD THIS
