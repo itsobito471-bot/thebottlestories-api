@@ -11,7 +11,7 @@ const OrderSchema = new mongoose.Schema({
   customer_email: { type: String, required: true },
   customer_phone: { type: String },
   
-  // Address Details (Snapshot of the address at time of order)
+  // Address Details
   shipping_address: {
     street: String,
     city: String,
@@ -20,7 +20,11 @@ const OrderSchema = new mongoose.Schema({
     country: String
   },
   
-  // Reference to separate OrderItem documents
+  // --- NEW: Tracking Information ---
+  trackingId: { type: String, default: '' },
+  trackingUrl: { type: String, default: '' },
+  
+  // Order Items
   items: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'OrderItem'
@@ -30,7 +34,18 @@ const OrderSchema = new mongoose.Schema({
   
   status: {
     type: String,
-    enum: ['pending', 'preparing', 'shipped', 'delivered', 'cancelled'], // Expanded status list
+   enum: [
+        'pending', 
+        'approved', 
+        'preparing', 
+        'crafting', 
+        'packaging', 
+        'shipped', 
+        'delivered', 
+        'completed', 
+        'cancelled', 
+        'rejected'
+    ],
     default: 'pending',
   },
   
