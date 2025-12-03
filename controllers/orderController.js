@@ -210,45 +210,46 @@ exports.updateOrderStatus = async (req, res) => {
 // @route   GET /api/orders/myorders
 // @desc    Get logged in user's orders (Paginated & Filtered)
 // @access  Private
+// @route   GET /api/orders/myorders
 exports.getMyOrders = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const status = req.query.status; // Optional status filter
+    const status = req.query.status;
     const skip = (page - 1) * limit;
 
-    // 1. Build Query
-    const query = { user: req.user.id }; // Always filter by logged-in user
+    const query = { user: req.user.id };
     
     if (status && status !== 'all') {
       query.status = status;
     }
 
-    // 2. Fetch Orders
     const orders = await Order.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
+      // --- UPDATED POPULATE SECTION ---
       .populate({
         path: 'items',
-        populate: { 
-          path: 'product',
-          select: 'name images price'
-        }
+        populate: [
+          { 
+            path: 'product',
+            select: 'name images price'
+          },
+          { 
+            path: 'selected_fragrances', // Populate the fragrances array
+            select: 'name' // Only get the name
+          }
+        ]
       });
+      // --------------------------------
 
-    // 3. Get Total Count for Pagination
     const total = await Order.countDocuments(query);
     const hasMore = skip + orders.length < total;
 
     res.json({
       data: orders,
-      pagination: {
-        page,
-        limit,
-        total,
-        hasMore
-      }
+      pagination: { page, limit, total, hasMore }
     });
   } catch (err) {
     console.error(err.message);
