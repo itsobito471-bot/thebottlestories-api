@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middleware/auth');
-const uploadMiddleware = require('../middleware/upload');
+const upload = require('../middleware/upload');
 const settings = require('../controllers/SettingsController');
 
 const { getEnquiries, markEnquiryRead } = require('../controllers/enquiryController');
+
+const {getAdminTestimonials,approveTestimonial,deleteTestimonial} = require('../controllers/testimonialController');
 // const auth = require('../middleware/auth')
 // All routes in this file are protected by the authMiddleware
 router.use(authMiddleware);
@@ -29,7 +31,7 @@ router.put('/orders/:id/status', authMiddleware, adminController.updateOrderStat
 // @route   POST api/admin/upload
 // @desc    Upload a product image
 // @access  Private
-router.post('/upload', uploadMiddleware, adminController.uploadProductImage);
+router.post('/upload', upload.array('images', 10), adminController.uploadProductImage);
 
 
 // @route   POST api/admin/products
@@ -80,6 +82,13 @@ router.post('/settings',authMiddleware, settings.updateSettings);
 router.get('/enquiries',authMiddleware, getEnquiries);
 // Matches /admin/enquiries/:id/read
 router.patch('/enquiries/:id/read',authMiddleware, markEnquiryRead);
+
+
+
+// Admin Routes
+router.get('/testimonials', authMiddleware, getAdminTestimonials);
+router.patch('/testimonials/:id/approve', authMiddleware, approveTestimonial);
+router.delete('/testimonials/:id', authMiddleware, deleteTestimonial);
 
 
 
