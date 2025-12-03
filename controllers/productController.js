@@ -1,7 +1,7 @@
 // controllers/productController.js
 
 const Product = require('../models/Product');
-
+const Review = require('../models/Review');
 /**
  * @route   GET /api/products/filter
  * @desc    Get products with advanced filtering, sorting, and pagination
@@ -164,5 +164,64 @@ exports.getAllProductIds = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
+  }
+};
+
+
+
+// @desc    Rate a product
+// @route   POST /api/products/:id/rate
+exports.rateProduct = async (req, res) => {
+  try {
+    const { rating } = req.body;
+    const productId = req.params.id;
+    const userId = req.user.id; // Assuming you have auth middleware
+
+    // 1. Check if user already rated
+    const alreadyRated = await Review.findOne({ product: productId, user: userId });
+
+    if (alreadyRated) {
+      // Option A: Return error (Lock)
+      return res.status(400).json({ message: 'You have already rated this product' });
+      
+      // Option B: Update existing rating (Unlock/Update)
+      // alreadyRated.rating = rating;
+      // await alreadyRated.save();
+      // return res.json({ message: 'Rating updated' });
+    }
+
+    // 2. Create Review
+    await Review.create({
+      product: productId,
+      user: userId,
+      rating: Number(rating)
+    });
+
+    res.status(201).json({ message: 'Rating added' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+
+// @desc    Get current user's rating for a product
+// @route   GET /api/products/:id/user-rating
+// @access  Private
+exports.getUserRating = async (req, res) => {
+  try {
+    const review = await Review.findOne({
+      product: req.params.id,
+      user: req.user.id
+    });
+
+    if (!review) {
+      return res.json({ hasRated: false, rating: 0 });
+    }
+
+    res.json({ hasRated: true, rating: review.rating });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
   }
 };
