@@ -25,6 +25,11 @@ const ProductSchema = new mongoose.Schema({
     ref: 'Fragrance' 
   }],
 
+  bottleConfig: [{
+    quantity: { type: Number, required: true, default: 1 },
+    size: { type: String, required: true } // e.g., "100ml", "50ml", "8ml"
+  }],
+
   // --- Customization Setup ---
   // Admin checks this box to let users type a custom note
   allow_custom_message: { 

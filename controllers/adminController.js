@@ -375,27 +375,23 @@ exports.createProduct = async (req, res) => {
     originalPrice,
     images,
     features,
-    // Note: If you updated your frontend to send 'tags' and 'available_fragrances' as arrays,
-    // make sure to destructure them here too.
     tags, 
     available_fragrances, 
     allow_custom_message,
     stock_quantity,
     is_active,
+    // --- NEW DESTRUCTURE ---
+    bottleConfig 
   } = req.body;
 
   try {
-    // 1. Check if product already exists
     let product = await Product.findOne({ name });
     if (product) {
       return res.status(400).json({ message: 'Product with this name already exists' });
     }
 
-    // 2. Get the Logged-in User's ID
-    // req.user is set by your 'auth' middleware
     const userId = req.user.id; 
 
-    // 3. Create new product instance
     product = new Product({
       name,
       description,
@@ -404,22 +400,20 @@ exports.createProduct = async (req, res) => {
       images,
       features,
       
-      // Map the new relational fields (if sent from frontend)
+      // --- MAP NEW FIELD ---
+      bottleConfig: bottleConfig || [], // Stores the array of { quantity, size }
+      // ---------------------
+
       tags: tags || [],
       available_fragrances: available_fragrances || [],
       allow_custom_message: allow_custom_message || false,
-
       stock_quantity: stock_quantity || 0,
       is_active,
-
-      // --- AUDIT TRAIL ---
-      createdBy: userId, // Saves the ID of the admin/worker who created it
-      updatedBy: userId  // The creator is also the first updater
+      createdBy: userId, 
+      updatedBy: userId 
     });
 
-    // 4. Save to database
     await product.save();
-
     res.status(201).json(product);
 
   } catch (err) {
