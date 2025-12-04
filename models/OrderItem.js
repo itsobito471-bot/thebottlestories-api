@@ -23,8 +23,9 @@ const OrderItemSchema = new mongoose.Schema({
   
   // Customizations
   selected_fragrances: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Fragrance'
+    fragrance: { type: mongoose.Schema.Types.ObjectId, ref: 'Fragrance' },
+    size: { type: String }, // e.g., "100ml"
+    label: { type: String } // e.g., "Bottle 1" or "Travel Size"
   }],
   
   custom_message: {

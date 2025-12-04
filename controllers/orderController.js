@@ -39,12 +39,21 @@ exports.createOrder = async (req, res) => {
 
     // 2. Create Order Items
     const orderItems = await Promise.all(items.map(async (item) => {
+      // item.selectedFragrances comes from frontend as an array of objects now:
+      // [{ fragranceId: '...', size: '100ml', label: 'Bottle 1' }]
+
+      const formattedFragrances = item.selectedFragrances?.map(f => ({
+        fragrance: f.fragranceId,
+        size: f.size,
+        label: f.label
+      })) || [];
+
       const newItem = new OrderItem({
         order: savedOrder._id,
         product: item._id,
         quantity: item.quantity,
         price_at_purchase: item.price,
-        selected_fragrances: item.selectedFragrances || [],
+        selected_fragrances: formattedFragrances, // Save the detailed structure
         custom_message: item.customMessage || ''
       });
       return await newItem.save();
