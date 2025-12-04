@@ -520,11 +520,13 @@ exports.updateProduct = async (req, res) => {
     originalPrice,
     images,
     features,
-    tags,                 // <-- Added
-    available_fragrances, // <-- Added
-    allow_custom_message, // <-- Added
+    tags,                 
+    available_fragrances, 
+    allow_custom_message, 
     stock_quantity,
     is_active,
+    // --- NEW FIELD ---
+    bottleConfig 
   } = req.body;
 
   // 2. Build the product object with fields to update
@@ -539,11 +541,14 @@ exports.updateProduct = async (req, res) => {
   if (images) productFields.images = images; 
   if (features) productFields.features = features; 
   
-  // --- NEW FIELDS UPDATES ---
+  // --- RELATIONSHIP UPDATES ---
   if (tags) productFields.tags = tags;
   if (available_fragrances) productFields.available_fragrances = available_fragrances;
   if (typeof allow_custom_message !== 'undefined') productFields.allow_custom_message = allow_custom_message;
-  // --------------------------
+  
+  // --- BOTTLE CONFIGURATION UPDATE ---
+  if (bottleConfig) productFields.bottleConfig = bottleConfig;
+  // ----------------------------------
 
   if (stock_quantity !== undefined) productFields.stock_quantity = stock_quantity;
   if (is_active !== undefined) productFields.is_active = is_active;
