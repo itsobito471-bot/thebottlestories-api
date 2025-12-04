@@ -78,3 +78,117 @@ exports.uploadAvatar = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+
+exports.getUsers = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '', filterBirthday = 'false' } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    let pipeline = [];
+
+    // 1. Match Users (Search)
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } }
+          ]
+        }
+      });
+    }
+
+    // 2. Birthday Logic (Calculated Fields)
+    if (filterBirthday === 'true') {
+      const today = new Date();
+      pipeline.push(
+        { $match: { dob: { $exists: true, $ne: null } } },
+        {
+          $addFields: {
+            currentYearBirthday: {
+              $dateFromParts: {
+                year: { $year: today },
+                month: { $month: "$dob" },
+                day: { $dayOfMonth: "$dob" }
+              }
+            }
+          }
+        },
+        {
+          $addFields: {
+            nextBirthday: {
+              $cond: {
+                if: { $lt: ["$currentYearBirthday", today] },
+                then: {
+                  $dateFromParts: {
+                    year: { $add: [{ $year: today }, 1] },
+                    month: { $month: "$dob" },
+                    day: { $dayOfMonth: "$dob" }
+                  }
+                },
+                else: "$currentYearBirthday"
+              }
+            }
+          }
+        },
+        {
+          $addFields: {
+            diffInMs: { $subtract: ["$nextBirthday", today] }
+          }
+        },
+        {
+          $addFields: {
+            daysUntilBirthday: { $divide: ["$diffInMs", 1000 * 60 * 60 * 24] }
+          }
+        },
+        {
+          $match: {
+            daysUntilBirthday: { $gte: 0, $lte: 10 }
+          }
+        },
+        { $sort: { daysUntilBirthday: 1 } }
+      );
+    } else {
+      pipeline.push({ $sort: { createdAt: -1 } });
+    }
+
+    // --- NEW: FETCH ADDRESSES ($lookup) ---
+    // This joins the 'addresses' collection where addresses.user == users._id
+    pipeline.push({
+      $lookup: {
+        from: 'addresses',       // The actual name of the collection in MongoDB (usually lowercase plural)
+        localField: '_id',       // User ID in User table
+        foreignField: 'user',    // User ID in Address table
+        as: 'addressDetails'     // The array name to put results in
+      }
+    });
+
+    // 3. Pagination Facet
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [{ $skip: skip }, { $limit: parseInt(limit) }]
+      }
+    });
+
+    const result = await User.aggregate(pipeline);
+    
+    const users = result[0].data;
+    const total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
+
+    res.status(200).json({
+      users,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
+        hasMore: skip + users.length < total
+      }
+    });
+
+  } catch (error) {
+    console.error("User fetch error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};

@@ -25,4 +25,5 @@ router.post('/address', auth, userController.addAddress);
 router.delete('/address/:id', auth, userController.deleteAddress);
 router.post('/avatar', auth, upload.single('image'), userController.uploadAvatar);
 
+
 module.exports = router;

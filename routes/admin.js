@@ -4,7 +4,7 @@ const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const settings = require('../controllers/SettingsController');
-
+const userController = require('../controllers/userController');
 const { getEnquiries, markEnquiryRead } = require('../controllers/enquiryController');
 
 const {getAdminTestimonials,approveTestimonial,deleteTestimonial} = require('../controllers/testimonialController');
@@ -90,6 +90,8 @@ router.get('/testimonials', authMiddleware, getAdminTestimonials);
 router.patch('/testimonials/:id/approve', authMiddleware, approveTestimonial);
 router.delete('/testimonials/:id', authMiddleware, deleteTestimonial);
 
+
+router.get('/users', authMiddleware, userController.getUsers);
 
 
 
