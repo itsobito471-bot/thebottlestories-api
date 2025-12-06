@@ -69,18 +69,15 @@ exports.getOrders = async (req, res) => {
 
     if (search) {
       const searchRegex = new RegExp(search, 'i');
-      // Check if search looks like a valid ObjectId to prevent casting errors
       const isObjectId = /^[0-9a-fA-F]{24}$/.test(search);
 
       if (isObjectId) {
-        // If it looks like an ID, search by ID OR fields
         query.$or = [
           { _id: search },
           { customer_name: searchRegex },
           { customer_email: searchRegex }
         ];
       } else {
-        // Otherwise search just text fields
         query.$or = [
           { customer_name: searchRegex },
           { customer_email: searchRegex }
@@ -97,7 +94,14 @@ exports.getOrders = async (req, res) => {
         path: 'items',
         populate: [
           { path: 'product', select: 'name images price' },
-          { path: 'selected_fragrances', select: 'name' }
+          
+          // --- FIX IS HERE: Populate nested fragrance object ---
+          { 
+            path: 'selected_fragrances.fragrance', 
+            model: 'Fragrance',
+            select: 'name' 
+          }
+          // ---------------------------------------------------
         ]
       })
       .populate('user', 'name email');
@@ -106,8 +110,7 @@ exports.getOrders = async (req, res) => {
     const totalFiltered = await Order.countDocuments(query);
     const hasMore = skip + orders.length < totalFiltered;
 
-    // 4. Calculate Global Stats (Independent of pagination)
-    // Revenue: Exclude 'pending', 'rejected', 'cancelled'
+    // 4. Global Stats
     const revenueStats = await Order.aggregate([
       { 
         $match: { 

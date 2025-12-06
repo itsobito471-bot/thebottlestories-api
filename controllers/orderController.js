@@ -329,7 +329,6 @@ exports.getMyOrders = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      // --- UPDATED POPULATE SECTION ---
       .populate({
         path: 'items',
         populate: [
@@ -337,13 +336,16 @@ exports.getMyOrders = async (req, res) => {
             path: 'product',
             select: 'name images price'
           },
+          // --- FIX IS HERE ---
           { 
-            path: 'selected_fragrances', // Populate the fragrances array
-            select: 'name' // Only get the name
+            // We must target the 'fragrance' field INSIDE the selected_fragrances object
+            path: 'selected_fragrances.fragrance', 
+            model: 'Fragrance', // Explicitly state the model to be safe
+            select: 'name' 
           }
+          // -------------------
         ]
       });
-      // --------------------------------
 
     const total = await Order.countDocuments(query);
     const hasMore = skip + orders.length < total;
