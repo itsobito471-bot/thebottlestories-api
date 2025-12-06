@@ -10,19 +10,19 @@ const Review = require('../models/Review');
 exports.filterProducts = async (req, res) => {
   try {
     // --- 1. Build Query Object ---
-    const { 
-      search, 
-      tag, 
-      minPrice, 
-      maxPrice, 
+    const {
+      search,
+      tag,
+      minPrice,
+      maxPrice,
       minRating,
       sort,
-      page = 1, 
-      limit = 10 
+      page = 1,
+      limit = 10
     } = req.query;
 
     const query = {
-      is_active: true, 
+      is_active: true,
     };
 
     // Text search
@@ -38,7 +38,7 @@ exports.filterProducts = async (req, res) => {
     if (tag) {
       // NOTE: If 'tag' comes in as an ID, this works. 
       // If 'tag' comes in as a name (e.g., "Best Seller"), you might need to adjust this logic.
-      query.tags = tag; 
+      query.tags = tag;
     }
 
     // Price range
@@ -127,7 +127,7 @@ exports.getProductById = async (req, res) => {
     const product = await Product.findById(req.params.id)
       // --- FIX IS HERE ---
       // Combine fields into one string: 'name in_stock'
-      .populate('available_fragrances', 'name in_stock') 
+      .populate('available_fragrances', 'name in_stock image description notes')
       .populate('tags', 'name'); // Removed 'color' unless you added it to the Tag schema
 
     // Check if product exists and is active
@@ -155,10 +155,10 @@ exports.getAllProductIds = async (req, res) => {
   try {
     // Find all active products and select *only* the _id field
     const products = await Product.find({ is_active: true }).select('_id');
-    
+
     // Map the array of objects to an array of strings
     const ids = products.map(product => product._id.toString());
-    
+
     res.json(ids);
 
   } catch (err) {
@@ -183,7 +183,7 @@ exports.rateProduct = async (req, res) => {
     if (alreadyRated) {
       // Option A: Return error (Lock)
       return res.status(400).json({ message: 'You have already rated this product' });
-      
+
       // Option B: Update existing rating (Unlock/Update)
       // alreadyRated.rating = rating;
       // await alreadyRated.save();

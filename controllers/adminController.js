@@ -109,16 +109,16 @@ exports.getOrders = async (req, res) => {
     // 4. Calculate Global Stats (Independent of pagination)
     // Revenue: Exclude 'pending', 'rejected', 'cancelled'
     const revenueStats = await Order.aggregate([
-      { 
-        $match: { 
-          status: { $nin: ['pending', 'rejected', 'cancelled'] } 
-        } 
+      {
+        $match: {
+          status: { $nin: ['pending', 'rejected', 'cancelled'] }
+        }
       },
-      { 
-        $group: { 
-          _id: null, 
-          totalRevenue: { $sum: "$total_amount" } 
-        } 
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$total_amount" }
+        }
       }
     ]);
 
@@ -157,22 +157,22 @@ exports.updateOrderStatus = async (req, res) => {
 
   // 2. Validation
   const validStatuses = [
-    'pending', 'approved', 'crafting', 'packaging', 
+    'pending', 'approved', 'crafting', 'packaging',
     'shipped', 'delivered', 'completed', 'cancelled', 'rejected'
   ];
 
   if (!validStatuses.includes(status)) {
-    return res.status(400).json({ 
-      msg: `Invalid status. Allowed: ${validStatuses.join(', ')}` 
+    return res.status(400).json({
+      msg: `Invalid status. Allowed: ${validStatuses.join(', ')}`
     });
   }
 
   try {
     // 3. Prepare Update Data
     // We explicitly check if tracking info exists in the body before adding it
-    const updateData = { 
-      status: status, 
-      updated_at: new Date() 
+    const updateData = {
+      status: status,
+      updated_at: new Date()
     };
 
     if (trackingId) updateData.trackingId = trackingId;
@@ -192,68 +192,68 @@ exports.updateOrderStatus = async (req, res) => {
     // ---------------------------------------------------------
     // 5. THE "MAGICAL" EMAIL CONTENT
     // ---------------------------------------------------------
-    
-    const gold = "#D4AF37"; 
+
+    const gold = "#D4AF37";
     const dark = "#1C1C1C";
     const cream = "#FDFBF7";
 
     let emailSubject = `A New Chapter for Order #${order._id.toString().slice(-6)}`;
     let emailHeading = "The Story Continues";
     let emailMessage = "Your order status has been updated.";
-    let icon = "✨"; 
+    let icon = "✨";
 
     // Dynamic Tracking Section (Initially Empty)
     let trackingSection = "";
 
-    switch(status.toLowerCase()) {
-        case 'approved':
-            emailHeading = "The Journey Begins";
-            emailMessage = "Your request has been accepted. We are now preparing the canvas for your olfactory story.";
-            icon = "🖋️";
-            break;
-        case 'crafting':
-            emailHeading = "The Art of Blending";
-            emailMessage = "Our artisans are currently in the atelier, awakening the notes of your fragrance. Alchemy is in progress.";
-            icon = "🧪";
-            break;
-        case 'packaging':
-            emailHeading = "Wrapped in Mystery";
-            emailMessage = "We are adding the final touches of elegance to your hamper, ensuring it is as beautiful as the scent within.";
-            icon = "🎁";
-            break;
-        case 'shipped':
-            emailSubject = `Your Scent has Taken Flight 🕊️`;
-            emailHeading = "On the Winds";
-            emailMessage = "Your bottle has left our atelier and is traveling across the miles to find you.";
-            icon = "🕊️";
+    switch (status.toLowerCase()) {
+      case 'approved':
+        emailHeading = "The Journey Begins";
+        emailMessage = "Your request has been accepted. We are now preparing the canvas for your olfactory story.";
+        icon = "🖋️";
+        break;
+      case 'crafting':
+        emailHeading = "The Art of Blending";
+        emailMessage = "Our artisans are currently in the atelier, awakening the notes of your fragrance. Alchemy is in progress.";
+        icon = "🧪";
+        break;
+      case 'packaging':
+        emailHeading = "Wrapped in Mystery";
+        emailMessage = "We are adding the final touches of elegance to your hamper, ensuring it is as beautiful as the scent within.";
+        icon = "🎁";
+        break;
+      case 'shipped':
+        emailSubject = `Your Scent has Taken Flight 🕊️`;
+        emailHeading = "On the Winds";
+        emailMessage = "Your bottle has left our atelier and is traveling across the miles to find you.";
+        icon = "🕊️";
 
-            // --- BUILD TRACKING HTML SECTION (Uses data from the UPDATED order) ---
-            if (order.trackingId || order.trackingUrl) {
-                trackingSection = `
+        // --- BUILD TRACKING HTML SECTION (Uses data from the UPDATED order) ---
+        if (order.trackingId || order.trackingUrl) {
+          trackingSection = `
                   <div style="margin: 30px 0; padding: 20px; background-color: #ffffff; border: 1px dashed ${gold};">
                     <p style="margin: 0 0 10px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #999;">Tracking Details</p>
                     ${order.trackingId ? `<p style="margin: 0 0 5px 0; font-family: 'Courier New', monospace; font-size: 14px; color: ${dark};">ID: <strong>${order.trackingId}</strong></p>` : ''}
                     ${order.trackingUrl ? `<p style="margin: 10px 0 0 0;"><a href="${order.trackingUrl}" style="color: ${gold}; text-decoration: none; font-style: italic; font-family: 'Georgia', serif;">Follow the Journey &rarr;</a></p>` : ''}
                   </div>
                 `;
-            }
-            break;
-        case 'delivered':
-        case 'completed':
-            emailSubject = `The Story is Yours ✨`;
-            emailHeading = "A New Memory";
-            emailMessage = "Your bottle has arrived. Unbox the magic, wear the story, and let the memories begin.";
-            icon = "✨";
-            break;
-        case 'cancelled':
-        case 'rejected':
-            emailSubject = `Update on Order #${order._id.toString().slice(-6)}`;
-            emailHeading = "The Page Turns Back";
-            emailMessage = "Your order has been cancelled. If you wish to rewrite this story, please contact us.";
-            icon = "🍂";
-            break;
-        default:
-            break;
+        }
+        break;
+      case 'delivered':
+      case 'completed':
+        emailSubject = `The Story is Yours ✨`;
+        emailHeading = "A New Memory";
+        emailMessage = "Your bottle has arrived. Unbox the magic, wear the story, and let the memories begin.";
+        icon = "✨";
+        break;
+      case 'cancelled':
+      case 'rejected':
+        emailSubject = `Update on Order #${order._id.toString().slice(-6)}`;
+        emailHeading = "The Page Turns Back";
+        emailMessage = "Your order has been cancelled. If you wish to rewrite this story, please contact us.";
+        icon = "🍂";
+        break;
+      default:
+        break;
     }
 
     const htmlTemplate = `
@@ -320,17 +320,17 @@ exports.updateOrderStatus = async (req, res) => {
 
     // 6. Send Email
     if (order.customer_email) {
-        const mailOptions = {
-            from: `"The Bottle Stories" <${process.env.MAIL_USERNAME}>`,
-            to: order.customer_email,
-            subject: emailSubject,
-            html: htmlTemplate
-        };
+      const mailOptions = {
+        from: `"The Bottle Stories" <${process.env.MAIL_USERNAME}>`,
+        to: order.customer_email,
+        subject: emailSubject,
+        html: htmlTemplate
+      };
 
-        transporter.sendMail(mailOptions, (err, info) => {
-            if (err) console.error("❌ Status Email Failed:", err);
-            else console.log(`✅ Magic Sent: ${info.response}`);
-        });
+      transporter.sendMail(mailOptions, (err, info) => {
+        if (err) console.error("❌ Status Email Failed:", err);
+        else console.log(`✅ Magic Sent: ${info.response}`);
+      });
     }
 
     res.json(order);
@@ -375,13 +375,13 @@ exports.createProduct = async (req, res) => {
     originalPrice,
     images,
     features,
-    tags, 
-    available_fragrances, 
+    tags,
+    available_fragrances,
     allow_custom_message,
     stock_quantity,
     is_active,
     // --- NEW DESTRUCTURE ---
-    bottleConfig 
+    bottleConfig
   } = req.body;
 
   try {
@@ -390,7 +390,7 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: 'Product with this name already exists' });
     }
 
-    const userId = req.user.id; 
+    const userId = req.user.id;
 
     product = new Product({
       name,
@@ -399,7 +399,7 @@ exports.createProduct = async (req, res) => {
       originalPrice: originalPrice || null,
       images,
       features,
-      
+
       // --- MAP NEW FIELD ---
       bottleConfig: bottleConfig || [], // Stores the array of { quantity, size }
       // ---------------------
@@ -409,8 +409,8 @@ exports.createProduct = async (req, res) => {
       allow_custom_message: allow_custom_message || false,
       stock_quantity: stock_quantity || 0,
       is_active,
-      createdBy: userId, 
-      updatedBy: userId 
+      createdBy: userId,
+      updatedBy: userId
     });
 
     await product.save();
@@ -435,7 +435,7 @@ exports.getProducts = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // 2. Build Query (Optional: Add search/filtering here if needed)
-    const query = {}; 
+    const query = {};
     // If this is the public endpoint, usually you only show active products:
     // if (!req.user) query.is_active = true; 
 
@@ -481,7 +481,7 @@ exports.getAdminProducts = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('tags', 'name') 
+      .populate('tags', 'name')
       .populate('available_fragrances', 'name in_stock');
 
     const total = await Product.countDocuments();
@@ -511,7 +511,7 @@ exports.getAdminProducts = async (req, res) => {
  */
 exports.updateProduct = async (req, res) => {
   const { id } = req.params;
-  
+
   // 1. Get all fields (including the NEW ones) from the body
   const {
     name,
@@ -520,39 +520,39 @@ exports.updateProduct = async (req, res) => {
     originalPrice,
     images,
     features,
-    tags,                 
-    available_fragrances, 
-    allow_custom_message, 
+    tags,
+    available_fragrances,
+    allow_custom_message,
     stock_quantity,
     is_active,
     // --- NEW FIELD ---
-    bottleConfig 
+    bottleConfig
   } = req.body;
 
   // 2. Build the product object with fields to update
   const productFields = {};
-  
+
   if (name) productFields.name = name;
   if (description) productFields.description = description;
   if (price) productFields.price = price;
   // Check specifically for undefined so we can set it to null/0 if sent
   if (originalPrice !== undefined) productFields.originalPrice = originalPrice;
-  
-  if (images) productFields.images = images; 
-  if (features) productFields.features = features; 
-  
+
+  if (images) productFields.images = images;
+  if (features) productFields.features = features;
+
   // --- RELATIONSHIP UPDATES ---
   if (tags) productFields.tags = tags;
   if (available_fragrances) productFields.available_fragrances = available_fragrances;
   if (typeof allow_custom_message !== 'undefined') productFields.allow_custom_message = allow_custom_message;
-  
+
   // --- BOTTLE CONFIGURATION UPDATE ---
   if (bottleConfig) productFields.bottleConfig = bottleConfig;
   // ----------------------------------
 
   if (stock_quantity !== undefined) productFields.stock_quantity = stock_quantity;
   if (is_active !== undefined) productFields.is_active = is_active;
-  
+
   // 3. Add Audit Trail (Who updated this?)
   if (req.user) {
     productFields.updatedBy = req.user.id;
@@ -602,8 +602,8 @@ exports.deleteProduct = async (req, res) => {
 
     if (isOrdered) {
       // If found, return a 400 Bad Request error
-      return res.status(400).json({ 
-        message: 'Cannot delete product. It has been purchased in previous orders. Consider archiving/deactivating it instead.' 
+      return res.status(400).json({
+        message: 'Cannot delete product. It has been purchased in previous orders. Consider archiving/deactivating it instead.'
       });
     }
 
@@ -734,11 +734,13 @@ const parseNotes = (str) => {
 exports.createFragrance = async (req, res) => {
   try {
     // Receive strings from frontend
-    const { name, topNotes, middleNotes, baseNotes, in_stock } = req.body;
+    const { name, topNotes, middleNotes, baseNotes, in_stock, image, description } = req.body;
     const userId = req.user.id;
 
     const fragrance = new Fragrance({
       name,
+      image,
+      description,
       // Convert strings to arrays
       notes: {
         top: parseNotes(topNotes),
@@ -784,6 +786,24 @@ exports.updateFragrance = async (req, res) => {
     res.json(fragrance);
   } catch (err) {
     console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+/**
+ * @route   GET api/fragrances/:id
+ * @desc    Get single fragrance by ID
+ */
+exports.getFragranceById = async (req, res) => {
+  try {
+    const fragrance = await Fragrance.findById(req.params.id);
+    if (!fragrance) {
+      return res.status(404).json({ message: 'Fragrance not found' });
+    }
+    res.json(fragrance);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') return res.status(404).json({ message: 'Fragrance not found' });
     res.status(500).send('Server Error');
   }
 };
