@@ -55,6 +55,7 @@ app.use('/api/tags', require('./routes/tags')); // <-- ADD THIS
 app.use('/api/settings', require('./routes/settings')); // <-- ADD THIS
 app.use('/api/testimonials', require('./routes/testimonials')); // <-- ADD THIS
 app.use('/api/fragrances', require('./routes/fragrances')); // Public Fragrance Route
+app.use('/api/analytics', require('./routes/analytics')); // <-- ANALYTICS ROUTE
 
 // Basic route
 app.get('/', (req, res) => res.send('API Running'));
